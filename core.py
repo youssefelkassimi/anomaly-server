@@ -47,7 +47,8 @@ class AnomalyDetector:
         )
         self.scaler = StandardScaler()
         self.feature_names: List[str] = []
-        self._is_trained = False
+        self._is_trained =  os.path.exists(DEFAULT_MODEL_PATH)
+
 
     # ------------------------------------------------------------------
     # Training
