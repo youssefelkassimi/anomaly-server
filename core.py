@@ -208,26 +208,25 @@ class AnomalyDetector:
         return X, y, feature_names
 
     def _generate_synthetic_anomalies(self, X_normal):
-        n_normal = X_normal.shape[0]
-        n_anomalies = max(int(n_normal * self.contamination / (1 - self.contamination)), 1)
+        n_normal, n_feat = X_normal.shape
+        n_anom = max(int(n_normal * self.contamination / (1 - self.contamination)), 1)
 
-        means = X_normal.mean(axis=0)
         stds = X_normal.std(axis=0)
         stds[stds == 0] = 1.0
-
         rng = np.random.RandomState(self.random_state)
-        anomalies = [
-            means + rng.choice([-1, 1]) * (2.5 + rng.rand()) * stds
-            for _ in range(n_anomalies)
-        ]
 
-        X_anom = np.array(anomalies, dtype=float)
-        X_combined = np.vstack([X_normal, X_anom])
-        y_combined = np.concatenate(
-            [np.zeros(n_normal, dtype=int), np.ones(n_anomalies, dtype=int)]
-        )
-        idx = rng.permutation(len(y_combined))
-        return X_combined[idx], y_combined[idx]
+        rows = []
+        for _ in range(n_anom):
+            row = X_normal[rng.randint(n_normal)].copy()
+            k = rng.randint(1, min(3, n_feat) + 1)
+            for j in rng.choice(n_feat, k, replace=False):
+                row[j] += rng.choice([-1, 1]) * (3 + 3 * rng.rand()) * stds[j]
+            rows.append(np.maximum(row, 0.0))
+
+        X = np.vstack([X_normal, np.array(rows)])
+        y = np.concatenate([np.zeros(n_normal, dtype=int), np.ones(n_anom, dtype=int)])
+        idx = rng.permutation(len(y))
+        return X[idx], y[idx]
 
     def _vectorize(self, data):
         if isinstance(data, dict):
